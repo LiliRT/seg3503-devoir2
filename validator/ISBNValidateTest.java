@@ -113,4 +113,89 @@ public class ISBNValidateTest {
 
         assertEquals("978-0-306-40615-7", result);
     }
+    @Test
+    void testTidyInsert_null() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ISBNValidate.tidyISBN10or13InsertingDashes(null)
+        );
+    }
+    @Test
+    void testTidyInsert_empty() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ISBNValidate.tidyISBN10or13InsertingDashes("")
+        );
+    }
+    @Test
+    void testTidyInsert_tooLong() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ISBNValidate.tidyISBN10or13InsertingDashes("123456789012345")
+        );
+    }
+    @Test
+    void testTidyInsert_isbn10() {
+        String result = ISBNValidate.tidyISBN10or13InsertingDashes("0306406152");
+        assertEquals("0-306-40615-2", result);
+    }
+    @Test
+    void testTidyInsert_isbn13() {
+        String result = ISBNValidate.tidyISBN10or13InsertingDashes("9780306406157");
+        assertEquals("978-0-306-40615-7", result);
+    }
+    @Test
+    void testTidyRemove_null() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ISBNValidate.tidyISBN10or13RemovingDashes(null)
+        );
+    }
+    @Test
+    void testTidyRemove_empty() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ISBNValidate.tidyISBN10or13RemovingDashes("")
+        );
+    }
+    @Test
+    void testTidyRemove_tooLong() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ISBNValidate.tidyISBN10or13RemovingDashes("123456789012345")
+        );
+    }
+    @Test
+    void testTidyRemove_isbn10() {
+        String result = ISBNValidate.tidyISBN10or13RemovingDashes("0-306-40615-2");
+        assertEquals("0306406152", result);
+    }
+    @Test
+    void testTidyRemove_isbn13() {
+        String result = ISBNValidate.tidyISBN10or13RemovingDashes("978-0-306-40615-7");
+        assertEquals("9780306406157", result);
+    }
+    @Test
+    void testIsbn10To13_invalidLength() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ISBNValidate.isbn10To13("123")
+        );
+    }
+    @Test
+    void testIsbn10To13_valid() {
+        String result = ISBNValidate.isbn10To13("0618680004");
+        assertEquals("978-0-618-68000-9", result);
+    }
+    @Test
+    void testIsbn13To10_invalidLength() {
+        assertThrows(IllegalArgumentException.class, () ->
+            ISBNValidate.isbn13To10("123")
+        );
+    }
+    @Test
+    void testIsbn13To10_valid978() {
+        String result = ISBNValidate.isbn13To10("9780618680009");
+        assertEquals("0618680004", result);
+    }
+    @Test
+    void testIsbn13To10_not978() {
+        String result = ISBNValidate.isbn13To10("9790618680009");
+        assertEquals("n/a", result);
+    }
+
+
 }
