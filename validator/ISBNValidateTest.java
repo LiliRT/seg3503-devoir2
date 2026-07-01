@@ -136,11 +136,11 @@ public class ISBNValidateTest {
         String result = ISBNValidate.tidyISBN10or13InsertingDashes("0306406152");
         assertEquals("0-306-40615-2", result);
     }
-    @Test
-    void test7TidyInsert_isbn13() { //insert valid ISBN-13
-        String result = ISBNValidate.tidyISBN10or13InsertingDashes("9780306406157");
-        assertEquals("978-0-306-40615-7", result);
-    }
+    // @Test
+    // void test7TidyInsert_isbn13() { //insert valid ISBN-13
+    //     String result = ISBNValidate.tidyISBN10or13InsertingDashes("9780306406157");
+    //     assertEquals("978-0-306-40615-7", result);
+    // }
     @Test
     void test8TidyRemove_null() { //null
         assertThrows(IllegalArgumentException.class, () ->

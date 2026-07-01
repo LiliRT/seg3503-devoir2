@@ -1,0 +1,1032 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ISBNValidate.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">ISBNValidate.java</span></div><h1>ISBNValidate.java</h1><pre class="source lang-java linenums">/*
+ * @(#)ISBNValidate.java
+ *
+ * Summary: Library of methods to validate and format ISBNs (International Standard Book Numbers).
+ *
+ * Copyright: (c) 1999-2011 Roedy Green, Canadian Mind Products, http://mindprod.com
+ *
+ * Licence: This software may be copied and used freely for any purpose but military.
+ *          http://mindprod.com/contact/nonmil.html
+ *
+ * Requires: JDK 1.5+
+ *
+ * Created with: IntelliJ IDEA IDE.
+ *
+ * Version History:
+ *  2.3 2009-03-16 tidy code, rename some methods.
+ */
+
+import java.util.BitSet;
+
+import static java.lang.System.err;
+import static java.lang.System.out;
+
+/**
+ * Library of methods to validate and format ISBNs (International Standard Book Numbers).
+ * &lt;p/&gt;
+ * Typical valid ISBNs look like this:
+ * group/country-publisher-title#-checkdigit
+ * examples of good formatted
+ * ISBNs 0-00-000000-0 0-200-00000-4 0-7000-0000-3
+ * 0-85000-000-9 0-900000-00-7 0-9500000-0-0 0-9999999-9-0 1-00-000000-1 1-09-999999-5 1-100-00000-3 1-399-99999-0
+ * 1-4000-0000-9 1-4999-9999-2 1-5000-0000-0 1-5499-9999-0 1-55000-000-4 1-86979-999-2 1-869800-00-1 1-9990000-0-5
+ * 2-00000000-2 2-95000000-2 3-00000000-3 3-99999999-3 4-00000000-4 4-95000000-4 5-00000000-5 5-95000000-5 7-00000000-7
+ * 7-20000000-0 7-95000000-7 80-0000000-8 93-9999999-8 950-000000-8 950-999999-7 9949-99999-5 9950-00000-9 9959-99999-8
+ * 9960-00000-1 9989-99999-6 99901-9601-X
+ * &lt;p/&gt;
+ * examples of bad ISBNs 6000000006 6950000006 6999999996 9400000006 9419000001
+ * 949999999X 992999999X 9930000003 9934000008 9939999992 9940000006 9999900003 9999999999
+ * The lead 0 is significant. They always contain 10 digits, possibly with the last check digit character being X.
+ * &lt;p/&gt;
+ * ISBN-13, for now always begin 978- and use a different check digit mechanism. It has a numeric checkdigit.
+ *
+ * @author Roedy Green, Canadian Mind Products
+ * @version 2.3 2009-03-16 tidy code, rename some methods.
+ * @since 1999
+ */
+<span class="nc" id="L47">public final class ISBNValidate</span>
+    {
+    // ------------------------------ CONSTANTS ------------------------------
+
+    private static final boolean DEBUGGING = false;
+
+    /**
+     * define bandd of IBSN numbers formatted differently to format an ISBN, after categorising it into a range of numbers.
+     * Number in table is  high+1 for the band.
+     * Even illegal bands get formatted in some way
+     */
+<span class="fc" id="L58">    private static final int[] BANDS = {</span>
+            // --------0 0-00-bbbbbb-x group 0 00.......19 1st 3rd 9th digit
+            +20000000,
+            // --------1 0-200-bbbbb-x 200......699 &quot; 4th &quot;
+            +70000000,
+            // --------2 0-7000-bbbb-x 7000.....8499 &quot; 5th &quot;
+            +85000000,
+            // --------3 0-85000-bbb-x 85000....89999 &quot; 6th &quot;
+            +90000000,
+            // --------4 0-900000-bb-x 900000...949999 &quot; 7th &quot;
+            +95000000,
+            // --------5 0-9500000-b-x 9500000..9999999 &quot; 8th &quot;
+            100000000,
+            // --------6 1-00-bbbbbb-x group 1 00.......09 1st 3rd 9th digit
+            110000000,
+            // --------7 1-100-bbbbb-x 100......399 &quot; 4th &quot;
+            140000000,
+            // --------8 1-4000-bbbb-x 4000.....5499 &quot; 5th &quot;
+            155000000,
+            // --------9 1-55000-bbb-x 55000....86979 1st 6th 9th digit
+            186980000,
+            // -------10 1-869800-bb-x 869800...998999 &quot; 7th &quot;
+            199900000,
+            // -------11 1-1999000-b-x 9990000..9999999 &quot; 8th &quot;
+            200000000,
+            // -------12 2-rrrrrrrr-x groups 2 .. 7 1st 9th digit
+            800000000,
+            // -------13 80-rrrrrrr-x groups 80 .. 94 2nd 9th digit
+            950000000,
+            // -------14 950-rrrrrr-x groups 950 .. 993 3rd 9th digit
+            994000000,
+            // -------15 9940-rrrrr-x groups 9940 .. 9989 4th 9th digit
+            999000000,
+            // -------16 groups 99900 .. 99999 5th 9th digit
+            1000000000 };
+
+    /**
+     * List of legal groups The following table gives the range remainder distribution of the group identifiers: for
+     * pub+title 0 - 7 9 80 - 94 8 950 - 993 7 9940 - 9989 6 99900 - 99999 5 Group is the part of the number before the
+     * first dash. as of 2005-06-19 only used to build bit map lookup see legal list at:
+     * http://www.isbn-international.org/en/identifiers/allidentifiers.html
+     * &lt;p/&gt;
+     * We convert he list to a bit map indexed by the first 5 digits to say whether an ISBN-10 could start with those 5
+     * digits.  For 13-digit ISBNs, we may eventually need different group tables for different 3-digit prefixes.
+     */
+<span class="fc" id="L103">    private static final int[] VALID_GROUPS = {</span>
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            98,
+            600,
+            950,
+            951,
+            952,
+            953,
+            954,
+            955,
+            956,
+            957,
+            958,
+            959,
+            960,
+            961,
+            962,
+            963,
+            964,
+            965,
+            966,
+            967,
+            968,
+            969,
+            970,
+            971,
+            972,
+            973,
+            974,
+            975,
+            976,
+            977,
+            978,
+            979,
+            980,
+            981,
+            982,
+            983,
+            984,
+            985,
+            986,
+            987,
+            988,
+            989,
+            9940,
+            9941,
+            9942,
+            9943,
+            9944,
+            9945,
+            9946,
+            9947,
+            9948,
+            9949,
+            9950,
+            9951,
+            9952,
+            9953,
+            9954,
+            9955,
+            9956,
+            9957,
+            9958,
+            9959,
+            9960,
+            9961,
+            9962,
+            9963,
+            9964,
+            9965,
+            9966,
+            9967,
+            9968,
+            9970,
+            9971,
+            9972,
+            9973,
+            9974,
+            9975,
+            9976,
+            9977,
+            9978,
+            9979,
+            9980,
+            9981,
+            9982,
+            9983,
+            9984,
+            9985,
+            9986,
+            9987,
+            9988,
+            9989,
+            99901,
+            99902,
+            99903,
+            99905,
+            99906,
+            99908,
+            99909,
+            99910,
+            99911,
+            99912,
+            99913,
+            99914,
+            99915,
+            99916,
+            99917,
+            99918,
+            99919,
+            99920,
+            99921,
+            99922,
+            99923,
+            99924,
+            99925,
+            99926,
+            99927,
+            99928,
+            99929,
+            99930,
+            99931,
+            99932,
+            99933,
+            99934,
+            99935,
+            99936,
+            99937,
+            99938,
+            99939,
+            99940,
+            99941,
+            99942,
+            99943,
+            99944,
+            99945,
+            99946,
+            99947,
+            99948,
+            99949,
+            99950,
+            99951,
+            99952,
+            99953,
+            99954,
+            99955 };
+
+    /**
+     * bit map of all valid groups, indexed by first 5 digits of ISBN currently all groups are valid, index into it to
+     * see if that group is valid.
+     */
+    private static BitSet groupValidLookup;
+    // -------------------------- PUBLIC STATIC METHODS --------------------------
+
+    /**
+     * Calculate the expected ISBN-13 checkdigit from the first 12 digits. inserts hyphens.
+     *
+     * @param dashlessISBN12 first 12 digits expressed as String. May not contain any extra lead/trail chars.
+     *
+     * @return complete ISBN with checkdigit without dashes..
+     */
+    @SuppressWarnings( { &quot;WeakerAccess&quot; } )
+    public static String appendCheckDigitToISBN12( String dashlessISBN12 )
+    {
+<span class="pc bpc" id="L287" title="1 of 2 branches missed.">    if ( dashlessISBN12.length() != 12 )</span>
+        {
+<span class="nc" id="L289">        throw new IllegalArgumentException(</span>
+                &quot;ISBN-12 must be 12 chars long without dashes, without check digit&quot; );
+        }
+<span class="fc" id="L292">    return dashlessISBN12 + calcISBN13CheckDigit( dashlessISBN12 );</span>
+    }// end appendCheckDigitToISBN12
+
+    /**
+     * Calculate the expected ISBN-10 checkdigit from the first 12 digits. inserts hyphens.
+     *
+     * @param dashlessISBN9 first 9 digits expressed as String. May not contain any extra lead/trail chars.
+     *
+     * @return complete ISBN-10 with checkdigit without dashes.
+     */
+    @SuppressWarnings( { &quot;WeakerAccess&quot; } )
+    public static String appendCheckDigitToISBN9( String dashlessISBN9 )
+    {
+<span class="nc bnc" id="L305" title="All 2 branches missed.">    if ( dashlessISBN9.length() != 9 )</span>
+        {
+<span class="nc" id="L307">        throw new IllegalArgumentException(</span>
+                &quot;ISBN-9 must be 9 chars long without dashes, without check digit&quot; );
+        }
+<span class="nc" id="L310">    return dashlessISBN9 + calcISBN10CheckDigit( dashlessISBN9 );</span>
+    }// end appendCheckDigitToISBN9
+
+    /**
+     * Checks if ISBN-10 is valid.
+     *
+     * @param dashlessISBN10 isbn, no dashes, 10 chars long, 0-9 possibly last char X.
+     */
+    @SuppressWarnings( { &quot;WeakerAccess&quot; } )
+    public static void ensureISBN10Valid( String dashlessISBN10 )
+    {
+<span class="nc bnc" id="L321" title="All 2 branches missed.">    if ( dashlessISBN10.length() != 10 )</span>
+        {
+<span class="nc" id="L323">        throw new IllegalArgumentException( &quot;ISBN-10 must be 10 digits long&quot; );</span>
+        }
+<span class="nc bnc" id="L325" title="All 2 branches missed.">    if ( dashlessISBN10.charAt( 9 ) == 'x' )</span>
+        {
+<span class="nc" id="L327">        throw new IllegalArgumentException( &quot;ISBN-10 should end in a capital X&quot; );</span>
+        }
+<span class="nc" id="L329">    ensureISBN10GroupValid( dashlessISBN10 );</span>
+<span class="nc" id="L330">    ensureISBN10PublisherValid( dashlessISBN10 );</span>
+<span class="nc bnc" id="L331" title="All 2 branches missed.">    if ( !isISBN10CheckDigitValid( dashlessISBN10 ) )</span>
+        {
+<span class="nc" id="L333">        throw new IllegalArgumentException( &quot;Bad Check Digit&quot; );</span>
+        }
+<span class="nc" id="L335">    }</span>
+
+    /**
+     * Checks if ISBN-13 is valid.
+     *
+     * @param dashlessISBN13 isbn, no dashes, 13 chars long
+     */
+    @SuppressWarnings( { &quot;WeakerAccess&quot; } )
+    public static void ensureISBN13Valid( String dashlessISBN13 )
+    {
+<span class="nc bnc" id="L345" title="All 2 branches missed.">    if ( dashlessISBN13.length() != 13 )</span>
+        {
+<span class="nc" id="L347">        throw new IllegalArgumentException( &quot;ISBN-13 must be 13 digits.&quot; );</span>
+        }
+<span class="nc" id="L349">    final String lead = dashlessISBN13.substring( 0, 3 );</span>
+<span class="nc bnc" id="L350" title="All 4 branches missed.">    if ( !( lead.equals( &quot;978&quot; ) || lead.equals( &quot;979&quot; ) ) )</span>
+        {
+<span class="nc" id="L352">        throw new IllegalArgumentException(</span>
+                &quot;ISBN-13 must begin with 978 or 979.&quot; );
+        }
+<span class="nc" id="L355">    final String isbn10Part = dashlessISBN13.substring( 3, 13 );</span>
+<span class="nc" id="L356">    ensureISBN10GroupValid( isbn10Part );</span>
+    // ensure publisher is ok
+<span class="nc" id="L358">    ensureISBN10PublisherValid( isbn10Part );</span>
+    // ensure check digit ok
+<span class="nc bnc" id="L360" title="All 2 branches missed.">    if ( !isISBN13CheckDigitValid( dashlessISBN13 ) )</span>
+        {
+<span class="nc" id="L362">        throw new IllegalArgumentException( &quot;Bad check digit.&quot; );</span>
+        }
+<span class="nc" id="L364">    }</span>
+
+    /**
+     * Validates checkdigit for an ISBN-10
+     *
+     * @param dashlessISBN10 isbn, no dashes, 10 chars long, 0-9 possibly last char X.
+     *
+     * @return true if check digit is correct.
+     *         &lt;p/&gt;
+     *         see &lt;a href=&quot;http://www.isbn.org/standards/home/isbn/international/html/usm4.htm&quot;&gt;isbn.org&lt;/a&gt; for
+     *         details. Weights are 10 9 8 7 6 5 4 3 2 1 mod 11, X represents modulo 10. sum mod 11 must be 0.
+     */
+    @SuppressWarnings( { &quot;BooleanMethodIsAlwaysInverted&quot;, &quot;WeakerAccess&quot; } )
+    public static boolean isISBN10CheckDigitValid( String dashlessISBN10 )
+    {
+<span class="nc bnc" id="L379" title="All 2 branches missed.">    if ( dashlessISBN10.length() != 10 )</span>
+        {
+<span class="nc" id="L381">        throw new IllegalArgumentException(</span>
+                &quot;ISBN-10 must be 10 digits long.&quot; );
+        }
+<span class="nc" id="L384">    return ( calcISBN10CheckDigit( dashlessISBN10.substring( 0, 9 ) )</span>
+<span class="nc bnc" id="L385" title="All 2 branches missed.">             == dashlessISBN10.charAt( 9 ) );</span>
+    }// end isISBN10CheckDigitValid
+
+    /**
+     * Validates checkdigit on ISBN-13
+     *
+     * @param dashlessISBN13 isbn, no dashes, 13chars long, 0-9
+     *
+     * @return true if check digit is correct.
+     *         &lt;p/&gt;
+     *         see &lt;a href=&quot;http://www.isbn.org/standards/home/isbn/international/html/usm4.htm&quot;&gt;isbn.org&lt;/a&gt; for
+     *         details. Weights are 10 9 8 7 6 5 4 3 2 1 mod 11, X represents modulo 10. sum mod 11 must be 0.
+     */
+    @SuppressWarnings( { &quot;BooleanMethodIsAlwaysInverted&quot;, &quot;WeakerAccess&quot; } )
+    public static boolean isISBN13CheckDigitValid( String dashlessISBN13 )
+    {
+<span class="nc bnc" id="L401" title="All 2 branches missed.">    if ( dashlessISBN13.length() != 13 )</span>
+        {
+<span class="nc" id="L403">        throw new IllegalArgumentException(</span>
+                &quot;ISBN-13 must be 13 digits long.&quot; );
+        }
+<span class="nc" id="L406">    return ( calcISBN13CheckDigit( dashlessISBN13.substring( 0, 12 ) )</span>
+<span class="nc bnc" id="L407" title="All 2 branches missed.">             == dashlessISBN13.charAt( 12 ) );</span>
+    }// end isISBN13CheckDigitValid
+
+    /**
+     * converts old ISBN-10 to ISBN-13 form
+     *
+     * @param dashlessISBN10 ISBN:10 without dashes, with check digit.
+     *
+     * @return complete ISBN-13 with checkdigit without dashes.
+     */
+    public static String isbn10To13( String dashlessISBN10 )
+    {
+<span class="pc bpc" id="L419" title="1 of 2 branches missed.">    if ( dashlessISBN10.length() != 10 )</span>
+        {
+<span class="nc" id="L421">        throw new IllegalArgumentException(</span>
+                &quot;ISBN-10 must be 10 chars long without dashes, with check digit&quot; );
+        }
+<span class="fc" id="L424">    return appendCheckDigitToISBN12( &quot;978&quot; + dashlessISBN10.substring( 0,</span>
+            9 ) );
+    }
+
+    /**
+     * converts new ISBN-13 to old ISBN-10 form
+     *
+     * @param dashlessISBN13 ISBN:13 without dashes, with check digit.
+     *
+     * @return complete ISBN-10 with checkdigit without dashes. Returns &quot;n/a&quot; if there is no equivalent ISBN-10 code.
+     */
+    public static String isbn13To10( String dashlessISBN13 )
+    {
+<span class="nc bnc" id="L437" title="All 2 branches missed.">    if ( dashlessISBN13.length() != 13 )</span>
+        {
+<span class="nc" id="L439">        throw new IllegalArgumentException(</span>
+                &quot;ISBN-13 must be 13 chars long without dashes, with check digit.&quot; );
+        }
+<span class="nc bnc" id="L442" title="All 2 branches missed.">    if ( dashlessISBN13.substring( 0, 3 ).equals( &quot;978&quot; ) )</span>
+        {
+<span class="nc" id="L444">        return appendCheckDigitToISBN9( dashlessISBN13.substring( 3, 12 ) );</span>
+        }
+    else
+        {
+<span class="nc" id="L448">        return ( &quot;n/a&quot; );</span>
+        }
+    }
+
+    /**
+     * Tidies up an ISBN by first removing stray dashes and
+     * non-numerics. Validates checksum, checks publisher number, and inserts dashes where they belong. Discards
+     * whatever it finds before or after the ISBN.
+     *
+     * @param rawISBN10or13 rawISBN text to be tidied, possibly with extra dashes, spaces or other junk chars.
+     *
+     * @return tidied dashed ISBN with lead and trail junk discarded. or an error message if the ISBN is invalid.
+     */
+    public static String tidyISBN10or13InsertingDashes
+    ( String rawISBN10or13 )
+    {
+<span class="nc bnc" id="L464" title="All 4 branches missed.">    if ( rawISBN10or13 == null || rawISBN10or13.length() == 0 )</span>
+        {
+<span class="nc" id="L466">        throw new IllegalArgumentException( &quot;no ISBN&quot; );</span>
+        }
+    // strip lead, trail and embedded junk including dashes
+<span class="nc" id="L469">    final String dashlessISBN = strip( rawISBN10or13 );</span>
+<span class="nc" id="L470">    final int length = dashlessISBN.length();</span>
+<span class="nc bnc" id="L471" title="All 3 branches missed.">    switch ( length )</span>
+        {
+        case 10:
+<span class="nc" id="L474">            ensureISBN10Valid( dashlessISBN );</span>
+<span class="nc" id="L475">            return insertDashesInISBN10or13( dashlessISBN );</span>
+        case 13:
+<span class="nc" id="L477">            ensureISBN13Valid( dashlessISBN );</span>
+<span class="nc" id="L478">            return insertDashesInISBN10or13( dashlessISBN );</span>
+        default:
+<span class="nc" id="L480">            throw new IllegalArgumentException(</span>
+                    &quot;ISBN must be 10 or 13 digits long.&quot; );
+        }
+    }// end tidyISBN10or13InsertingDashes
+
+    /**
+     * TOP LEVEL method, used by Amazon book macro to get ISBN without dashes.. Tidies up an ISBN by removing all dashes
+     * and non-numerics. Validates checksum, checks publisher number, Discards whatever it finds before or after the
+     * ISBN e.g.
+     *
+     * @param rawISBN10or13 rawISBN text to be tidied, may contain spaces, dashes or other junk chars.
+     *
+     * @return tidied dash-free ISBN with lead and trail junk discarded. or an error message if the ISBN is invalid.
+     */
+    public static String tidyISBN10or13RemovingDashes( String rawISBN10or13 )
+    {
+<span class="nc bnc" id="L496" title="All 4 branches missed.">    if ( rawISBN10or13 == null || rawISBN10or13.length() == 0 )</span>
+        {
+<span class="nc" id="L498">        throw new IllegalArgumentException( &quot;no ISBN&quot; );</span>
+        }
+    // strip lead, trail and embedded junk including dashes
+<span class="nc" id="L501">    final String dashlessISBN = strip( rawISBN10or13 );</span>
+<span class="nc" id="L502">    final int length = dashlessISBN.length();</span>
+<span class="nc bnc" id="L503" title="All 3 branches missed.">    switch ( length )</span>
+        {
+        case 10:
+<span class="nc" id="L506">            ensureISBN10Valid( dashlessISBN );</span>
+<span class="nc" id="L507">            return dashlessISBN;</span>
+        case 13:
+<span class="nc" id="L509">            ensureISBN13Valid( dashlessISBN );</span>
+<span class="nc" id="L510">            return dashlessISBN;</span>
+        default:
+<span class="nc" id="L512">            throw new IllegalArgumentException(</span>
+                    &quot;must be 10 or 13 digits long.&quot; );
+        }
+    }// end tidyISBN10or13RemovingDashes
+
+    // -------------------------- STATIC METHODS --------------------------
+
+    static
+        {
+<span class="fc" id="L521">        buildGroupValidLookup();</span>
+<span class="fc" id="L522">        }</span>
+
+    /**
+     * Build a BitSet to check if a group is valid, static initialisation
+     */
+    private static void buildGroupValidLookup()
+    {
+<span class="fc" id="L529">    groupValidLookup = new BitSet( 100000 );</span>
+<span class="fc bfc" id="L530" title="All 2 branches covered.">    for ( int group : VALID_GROUPS )</span>
+        {
+        // how many digits wide
+<span class="fc" id="L533">        int width = Integer.toString( group ).length();</span>
+<span class="pc bpc" id="L534" title="1 of 6 branches missed.">        switch ( width )</span>
+            {
+            case 5:
+<span class="fc" id="L537">                groupValidLookup.set( group );</span>
+<span class="fc" id="L538">                break;</span>
+            case 4:
+<span class="fc bfc" id="L540" title="All 2 branches covered.">                for ( int j = group * 10; j &lt;= group * 10 + 9; j++ )</span>
+                    {
+<span class="fc" id="L542">                    groupValidLookup.set( j );</span>
+                    }
+<span class="fc" id="L544">                break;</span>
+            case 3:
+<span class="fc bfc" id="L546" title="All 2 branches covered.">                for ( int j = group * 100; j &lt;= group * 100 + 99; j++ )</span>
+                    {
+<span class="fc" id="L548">                    groupValidLookup.set( j );</span>
+                    }
+<span class="fc" id="L550">                break;</span>
+            case 2:
+<span class="fc bfc" id="L552" title="All 2 branches covered.">                for ( int j = group * 1000; j &lt;= group * 1000 + 999; j++ )</span>
+                    {
+<span class="fc" id="L554">                    groupValidLookup.set( j );</span>
+                    }
+<span class="fc" id="L556">                break;</span>
+            case 1:
+<span class="fc" id="L558">                for ( int j = group * 10000; j</span>
+<span class="fc bfc" id="L559" title="All 2 branches covered.">                                             &lt;= group * 10000 + 9999; j++ )</span>
+                    {
+<span class="fc" id="L561">                    groupValidLookup.set( j );</span>
+                    }
+<span class="fc" id="L563">                break;</span>
+            default:
+<span class="nc" id="L565">                throw new IllegalArgumentException(</span>
+                        &quot;bug: bad VALID_GROUPS table&quot; );
+            }// end switch
+        }// end for
+<span class="fc" id="L569">    }</span>
+
+    /**
+     * Calculate the expected ISBN-10 checkdigit from the first 9 digits.
+     *
+     * @param dashlessISBN9 first 9 digits expressed as String. May not contain any extra lead/trail chars.
+     *
+     * @return just the check digit as a char.
+     */
+    private static char calcISBN10CheckDigit( String dashlessISBN9 )
+    {
+<span class="nc bnc" id="L580" title="All 2 branches missed.">    if ( dashlessISBN9.length() != 9 )</span>
+        {
+<span class="nc" id="L582">        throw new IllegalArgumentException( &quot;ISBN-9 must be 9 digits.&quot; );</span>
+        }
+<span class="nc" id="L584">    int sum = 0;</span>
+    /*         0 1 2 3 4 5 6 7 8|9
+    ISBN       9 9 9 0 1 9 6 0 1|X
+    Weighting 10 9 8 7 6 5 4 3 2|1
+    Values   90 + 81 + 72 + 0 + 6 + 45 + 24 + 0 + 2  = 320  mod 11 = 1
+    divide by 11 and get remainder. If 0, checkdigit is 0
+    if 1 the checkdigit is X,
+    otherwise it is 10 - remainder.
+    */
+    // not your usual odd-even. work right to left,  slot 8, 7 ... 0
+<span class="nc bnc" id="L594" title="All 2 branches missed.">    for ( int weight = 2; weight &lt;= 10; weight++ )</span>
+        {
+        // works even though 10th digit not there yet
+<span class="nc" id="L597">        int digit = dashlessISBN9.charAt( 10 - weight ) - '0';</span>
+<span class="nc" id="L598">        sum += digit * weight;</span>
+        }// end for
+<span class="nc" id="L600">    final int remainder = sum % 11;</span>
+    // sum 0-&gt;0, 1-&gt;10(X), 2-&gt;9. 3-&gt;8, 4-&gt;7, 5-&gt;6, 6-&gt;5, 7-&gt;4, 8-&gt;3, 9-&gt;2,
+    // 10-&gt;1
+<span class="nc bnc" id="L603" title="All 3 branches missed.">    switch ( remainder )</span>
+        {
+        case 0:
+<span class="nc" id="L606">            return '0';</span>
+        case 1:
+<span class="nc" id="L608">            return 'X';</span>
+        default:
+<span class="nc" id="L610">            return ( char ) ( 11 - remainder + '0' );</span>
+        }
+    }// end calcISBN10CheckDigit
+
+    /**
+     * Calculate the expected checkdigit for an ISBN-13. http://www.isbn.org/standards/home/isbn/transition.asp uses
+     * mod-10 checkdigit with weight 3.
+     *
+     * @param dashlessISBN12 first 12 digits expressed as String. May not contain any extra lead/trail chars.
+     *
+     * @return just the check digit as a char. always a digit '0' to '9'
+     */
+    private static char calcISBN13CheckDigit( String dashlessISBN12 )
+    {
+    /*        0 1 2 3 4 5 6 7 8 9 A B|C
+    ISBN      9 7 8 0 9 4 0 0 1 6 7 3|6
+    Weighting 1 3 1 3 1 3 1 3 1 3 1 3|1
+    Values    9 + 21 + 8 + 0 + 9 + 12 + 0 + 0 + 1 + 18 + 7 + 9 = 94  mod 10 = 4, 10 - 4 = 6
+    divide by 10 and get remainder. If 0, checkdigit is 0, otherwise it is 10 - remainder.
+    */
+<span class="pc bpc" id="L630" title="1 of 2 branches missed.">    if ( dashlessISBN12.length() != 12 )</span>
+        {
+<span class="nc" id="L632">        throw new IllegalArgumentException( &quot;ISBN-12 must be 12 digits.&quot; );</span>
+        }
+<span class="fc" id="L634">    int sum = 0;</span>
+    // work left to right, start with weight 1, alternating weight 3
+<span class="fc bfc" id="L636" title="All 2 branches covered.">    for ( int i = 0; i &lt; 12; i++ )</span>
+        {
+        // extract digit
+<span class="fc" id="L639">        final int digit = dashlessISBN12.charAt( i ) - '0';</span>
+        // even cols weight 1, odd cols weight 3
+<span class="fc bfc" id="L641" title="All 2 branches covered.">        sum += ( i &amp; 1 ) != 0 ? digit * 3 : digit;</span>
+        }
+<span class="fc" id="L643">    final int remainder = sum % 10;</span>
+<span class="pc bpc" id="L644" title="1 of 2 branches missed.">    return ( remainder == 0 ) ? '0' : ( char ) ( '0' + 10 - remainder );</span>
+    }// end calcISBN13CheckDigit
+
+    /**
+     * Some group numbers are invalid.
+     *
+     * @param isbn10 isbn, no dashes, 10 chars long, 0-9 possibly last char X.
+     */
+    @SuppressWarnings( { &quot;BooleanMethodIsAlwaysInverted&quot; } )
+    private static void ensureISBN10GroupValid( String isbn10 )
+    {
+    // first 5 digits
+    int group;
+    try
+        {
+<span class="nc" id="L659">        group = Integer.parseInt( isbn10.substring( 0, 5 ) );</span>
+        }
+<span class="nc" id="L661">    catch ( NumberFormatException e )</span>
+        {
+<span class="nc" id="L663">        throw new IllegalArgumentException( &quot;Bad group number&quot; );</span>
+<span class="nc" id="L664">        }</span>
+<span class="nc bnc" id="L665" title="All 2 branches missed.">    if ( !groupValidLookup.get( group ) )</span>
+        {
+<span class="nc" id="L667">        throw new IllegalArgumentException( &quot;Bad group number&quot; );</span>
+        }
+<span class="nc" id="L669">    }// end isGroupValid</span>
+
+    /**
+     * Some publisher numbers could be invalid. They would be too long to leave room for a book number.
+     *
+     * @param dashlessISBN10 isbn, no dashes, 10 chars long, 0-9 possibly last char X.
+     */
+    @SuppressWarnings( { &quot;BooleanMethodIsAlwaysInverted&quot; } )
+    private static void ensureISBN10PublisherValid( String dashlessISBN10 )
+    {
+    try
+        {
+<span class="nc" id="L681">        Integer.parseInt( dashlessISBN10.substring( 0, 9 ) );</span>
+        }
+<span class="nc" id="L683">    catch ( NumberFormatException e )</span>
+        {
+<span class="nc" id="L685">        throw new IllegalArgumentException( &quot;Bad publisher&quot; );</span>
+<span class="nc" id="L686">        }</span>
+    // The no known invalid publisher numbers.
+    // There are none in group 0 &amp; 1.
+    // in other groups I don't know.
+<span class="nc" id="L690">    }</span>
+
+    /**
+     * Inserts dashes between group, publisher, title and checkdigit.
+     * see http://isbn.org/standards/home/isbn/international/hyphenation-instructions.asp
+     * For correct presentation, the 10 digits of an ISBN must be divided, by hyphens, into four parts:
+     * &lt;p/&gt;
+     * Part 1: The country or group of countries identifier
+     * &lt;p/&gt;
+     * Part 2: The publisher identifier
+     * &lt;p/&gt;
+     * Part 3: The title identifier
+     * &lt;p/&gt;
+     * Part 4: The check digit Group
+     * &lt;p/&gt;
+     * Where to put the dashes depends on the range of number. There are 12 different patterns. for ISBN 10.
+     * We format the last 10 digits of an ISBN-13 the same way we would an ISBN-10 with a lead 978-.
+     * Common usage is to drop the dashes for ISBN-13. People find them too complicated to do properly.
+     * We don't because it makes them easier to read.
+     *
+     * @param dashlessISBN10or13 isbn, no dashes, 10 chars long, 0-9 possibly last char X. must be a valid ISBN number.
+     *
+     * @return ISBN with dashed inserted.
+     */
+    private static String insertDashesInISBN10or13( String dashlessISBN10or13 )
+    {
+    // first 9 digits
+    int range;
+    boolean isISBN13;
+<span class="nc" id="L719">    final int length = dashlessISBN10or13.length();</span>
+    try
+        {
+<span class="nc bnc" id="L722" title="All 3 branches missed.">        switch ( length )</span>
+            {
+            case 10:
+<span class="nc" id="L725">                range =</span>
+<span class="nc" id="L726">                        Integer.parseInt( dashlessISBN10or13.substring( 0,</span>
+                                9 ) );
+<span class="nc" id="L728">                isISBN13 = false;</span>
+<span class="nc" id="L729">                break;</span>
+            case 13:
+<span class="nc" id="L731">                range =</span>
+<span class="nc" id="L732">                        Integer.parseInt( dashlessISBN10or13.substring( 3,</span>
+                                12 ) );
+<span class="nc" id="L734">                isISBN13 = true;</span>
+<span class="nc" id="L735">                break;</span>
+            default:
+<span class="nc" id="L737">                return dashlessISBN10or13;</span>
+            }
+        }
+<span class="nc" id="L740">    catch ( NumberFormatException e )</span>
+        {
+<span class="nc" id="L742">        return dashlessISBN10or13;</span>
+<span class="nc" id="L743">        }</span>
+    // 0-based where first dash goes
+<span class="nc" id="L745">    int whereFirstDash = -1;</span>
+    // 0-based where middle dash goes, -1 = none
+<span class="nc" id="L747">    int whereMidDash = -1;</span>
+    // never varies since always single-digit check digit.
+    // 0-based where last dash goes
+    final int whereLastDash = 8;
+<span class="nc" id="L751">    boolean tryAgain = false;</span>
+    do
+        {
+        // figure out where middle dash goes
+<span class="nc" id="L755">        int band = 0;</span>
+<span class="nc bnc" id="L756" title="All 2 branches missed.">        for ( int i = 0; i &lt; BANDS.length; i++ )</span>
+            {
+<span class="nc bnc" id="L758" title="All 2 branches missed.">            if ( range &lt; BANDS[ i ] )</span>
+                {
+<span class="nc" id="L760">                band = i;</span>
+<span class="nc" id="L761">                break;</span>
+                }// end if
+            }// end for
+<span class="nc bnc" id="L764" title="All 12 branches missed.">        switch ( band )</span>
+            {
+            // 1st 3rd 9th digit
+            case 0:
+                /* publisher 00 .. 19 : 0-00-bbbbbb-x */
+            case 6:
+                /* publisher 10 .. 09 : 1-00-bbbbbb-x */
+<span class="nc" id="L771">                whereFirstDash = 0;</span>
+<span class="nc" id="L772">                whereMidDash = whereFirstDash + 2;</span>
+<span class="nc" id="L773">                break;</span>
+            // 1st 4th 9th digit
+            case 1:
+                /* publisher 200 .. 699 : 0-200-bbbbb-x */
+            case 7:
+                /* publisher 100.. 399 : 1-100-bbbbb-x */
+<span class="nc" id="L779">                whereFirstDash = 0;</span>
+<span class="nc" id="L780">                whereMidDash = whereFirstDash + 3;</span>
+<span class="nc" id="L781">                break;</span>
+            // 1st 5th 9th digit
+            case 2:
+                /* publisher 7000 .. 8499 : 0-7000-bbbb-x */
+            case 8:
+                /* publisher 4000.. 5499 : 1-4000-bbbb-x */
+<span class="nc" id="L787">                whereFirstDash = 0;</span>
+<span class="nc" id="L788">                whereMidDash = whereFirstDash + 4;</span>
+<span class="nc" id="L789">                break;</span>
+            // 1st 6th 9th digit
+            case 3:
+                /* publisher 85000 .. 89999 : 0-85000-bbb-x */
+            case 9:
+                /* publisher 55000 .. 86979 : 0-54999-bbb-x */
+<span class="nc" id="L795">                whereFirstDash = 0;</span>
+<span class="nc" id="L796">                whereMidDash = whereFirstDash + 5;</span>
+<span class="nc" id="L797">                break;</span>
+            // 1st 7th 9th digit
+            case 4:
+                /* publisher 900000 .. 94999 : 0-90000-bb-x */
+            case 10:
+                /* publisher 869800 .. 998999 : 0-869800-bb-x */
+<span class="nc" id="L803">                whereFirstDash = 0;</span>
+<span class="nc" id="L804">                whereMidDash = whereFirstDash + 6;</span>
+<span class="nc" id="L805">                break;</span>
+            // 1st 8th 9th digit
+            case 5:
+                /* publisher 9500000 .. 9999999 : 0-950000-b-x */
+            case 11:
+                /* publisher 9990000 .. 9999999 : 0-9990000-b-x */
+<span class="nc" id="L811">                whereFirstDash = 0;</span>
+<span class="nc" id="L812">                whereMidDash = whereFirstDash + 7;</span>
+<span class="nc" id="L813">                break;</span>
+            // 1st 9th digit
+            case 12:/* group codes 2 .. 7 : 2-rrrrrrrr-x */
+<span class="nc" id="L816">                whereFirstDash = 0;</span>
+                /* leave out dash between publisher and title */
+<span class="nc" id="L818">                break;</span>
+            // 2nd 9th digit
+            case 13:/* group codes 80 .. 94: 80-rrrrrrr-x */
+<span class="nc" id="L821">                whereFirstDash = 1;</span>
+                /* leave out dash between publisher and title */
+<span class="nc" id="L823">                break;</span>
+            // 3rd 9th digit
+            case 14:/* group codes 950..993 : 930-rrrrrr-x */
+<span class="nc" id="L826">                whereFirstDash = 2;</span>
+                /* leave out dash between publisher and title */
+<span class="nc" id="L828">                break;</span>
+            // 4th 9th digit
+            case 15:/* group codes 9940 .. 9989 : 9940-rrrrr-x */
+<span class="nc" id="L831">                whereFirstDash = 3;</span>
+                /* leave out dash between publisher and title */
+<span class="nc" id="L833">                break;</span>
+            // 5th 9th digit
+            case 16:/* group codes 99900 .. 99999 : 99900-rrrr-x */
+<span class="nc" id="L836">                whereFirstDash = 4;</span>
+                /* leave out dash between publisher and title */
+                break;
+            }// end switch
+        }
+<span class="nc bnc" id="L841" title="All 2 branches missed.">    while ( tryAgain );</span>
+    // insert the three dashes
+<span class="nc" id="L843">    StringBuilder cooked = new StringBuilder( 13 + 4 );</span>
+<span class="nc bnc" id="L844" title="All 2 branches missed.">    if ( isISBN13 )</span>
+        {
+<span class="nc" id="L846">        cooked.append( dashlessISBN10or13.substring( 0, 3 ) );</span>
+<span class="nc" id="L847">        cooked.append( '-' );</span>
+        }
+<span class="nc bnc" id="L849" title="All 2 branches missed.">    for ( int i = 0; i &lt; 10; i++ )</span>
+        {
+<span class="nc bnc" id="L851" title="All 2 branches missed.">        char c = dashlessISBN10or13.charAt( isISBN13 ? i + 3 : i );</span>
+<span class="nc" id="L852">        cooked.append( c );</span>
+<span class="nc bnc" id="L853" title="All 6 branches missed.">        if ( i == whereFirstDash</span>
+             || i == whereMidDash
+             || i == whereLastDash )
+            {
+<span class="nc" id="L857">            cooked.append( '-' );</span>
+            }
+        }// end for
+<span class="nc" id="L860">    return cooked.toString();</span>
+    }// end insertDashesInISBN10or13
+
+    /**
+     * strips out extraneous characters, leaving 10 digits (possibly X for last) stores lead and trail junk around
+     * number for later use by sandwich.
+     *
+     * @param rawISBN10or13 string with lead and trail and embedded junk, e.g. punctuation, spaces.
+     *
+     * @return just the digits and X, ideally 10 or 13 digits worth.
+     */
+    private static String strip( String rawISBN10or13 )
+    {
+    // find where where lead junk ends
+<span class="nc" id="L874">    boolean foundNumbers = false;</span>
+<span class="nc bnc" id="L875" title="All 2 branches missed.">    for ( int i = 0; i &lt; rawISBN10or13.length(); i++ )</span>
+        {
+<span class="nc" id="L877">        char c = rawISBN10or13.charAt( i );</span>
+<span class="nc bnc" id="L878" title="All 2 branches missed.">        if ( &quot;0123456789&quot;.indexOf( c ) &gt;= 0 )</span>
+            {
+            // We have found the beginning of the ISBN
+            // Should really just have to look for 0, 1 or 7, but
+            // user might think you can leave off lead 0.
+<span class="nc" id="L883">            rawISBN10or13 = rawISBN10or13.substring( i );</span>
+<span class="nc" id="L884">            foundNumbers = true;</span>
+<span class="nc" id="L885">            break;</span>
+            }
+        }// end for
+<span class="nc bnc" id="L888" title="All 2 branches missed.">    if ( !foundNumbers )</span>
+        {
+<span class="nc" id="L890">        return &quot;&quot;;</span>
+        }
+    // find where where trailing junk ends
+    // can't run off the end of the loop
+<span class="nc bnc" id="L894" title="All 2 branches missed.">    for ( int i = rawISBN10or13.length() - 1; i &gt;= 0; i-- )</span>
+        {
+<span class="nc" id="L896">        char c = rawISBN10or13.charAt( i );</span>
+<span class="nc bnc" id="L897" title="All 2 branches missed.">        if ( &quot;0123456789Xx&quot;.indexOf( c ) &gt;= 0 )</span>
+            {
+            // we have found the end of the ISBN
+<span class="nc" id="L900">            rawISBN10or13 = rawISBN10or13.substring( 0, i + 1 );</span>
+<span class="nc" id="L901">            break;</span>
+            }
+        }// end for
+    // remove embedded junk
+<span class="nc" id="L905">    StringBuilder cooked = new StringBuilder( rawISBN10or13.length() );</span>
+<span class="nc bnc" id="L906" title="All 2 branches missed.">    for ( int i = 0; i &lt; rawISBN10or13.length(); i++ )</span>
+        {
+<span class="nc" id="L908">        char c = rawISBN10or13.charAt( i );</span>
+<span class="nc bnc" id="L909" title="All 2 branches missed.">        if ( &quot;0123456789&quot;.indexOf( c ) &gt;= 0 )</span>
+            {
+<span class="nc" id="L911">            cooked.append( c );</span>
+            }
+<span class="nc bnc" id="L913" title="All 2 branches missed.">        else if ( &quot;Xx&quot;.indexOf( c ) &gt;= 0 )</span>
+            {
+<span class="nc" id="L915">            cooked.append( 'X' );</span>
+            }
+        else
+            {
+            /* ignore */
+            }
+        }// end for
+<span class="nc bnc" id="L922" title="All 4 branches missed.">    if ( cooked.length() == 14 &amp;&amp; cooked.charAt( 13 ) == 'X' )</span>
+        {
+<span class="nc" id="L924">        cooked.delete( 13, 13 );</span>
+        }
+<span class="nc" id="L926">    return cooked.toString();</span>
+    }// end strip
+
+    // --------------------------- main() method ---------------------------
+
+    /**
+     * test harness
+     *
+     * @param args not used.
+     */
+    public static void main( String[] args )
+    {
+    if ( DEBUGGING )
+        {
+        String[] tests = {
+                // 9 digits long. We append a good check digit before
+                // testing
+                &quot;000000000&quot;,
+                &quot;039306163&quot;,
+                /* 0-393-06163-9 978-0-393-06163-5 Making of the Fittest */
+                &quot;094001673&quot;,
+                &quot;157675414&quot;,
+                &quot;020000000&quot;,
+                &quot;061868000&quot;,
+                /* 0-618-68000-4 978-0-618-68000-9  Dawkins */
+                &quot;070000000&quot;,
+                &quot;085000000&quot;,
+                &quot;090000000&quot;,
+                &quot;094001673&quot;,
+                /* 0-940016-73-7  978-0-940016-73-6  isbn for dummies example*/
+                &quot;095000000&quot;,
+                &quot;099999999&quot;,
+                &quot;100000000&quot;,
+                &quot;109999999&quot;,
+                &quot;110000000&quot;,
+                &quot;139999999&quot;,
+                &quot;140000000&quot;,
+                &quot;149999999&quot;,
+                &quot;150000000&quot;,
+                &quot;154999999&quot;,
+                &quot;155000000&quot;,
+                &quot;186979999&quot;,
+                &quot;186980000&quot;,
+                &quot;199900000&quot;,
+                &quot;200000000&quot;,
+                &quot;295000000&quot;,
+                &quot;300000000&quot;,
+                &quot;399999999&quot;,
+                &quot;400000000&quot;,
+                &quot;495000000&quot;,
+                &quot;500000000&quot;,
+                &quot;595000000&quot;,
+                &quot;600000000&quot;,
+                &quot;700000000&quot;,
+                &quot;720000000&quot;,
+                &quot;795000000&quot;,
+                &quot;800000000&quot;,
+                &quot;939999999&quot;,
+                &quot;950000000&quot;,
+                &quot;950999999&quot;,
+                &quot;994000000&quot;,
+                &quot;994999999&quot;,
+                &quot;995000000&quot;,
+                &quot;995999999&quot;,
+                &quot;996000000&quot;,
+                &quot;998999999&quot;,
+                &quot;999019601&quot;,
+                &quot;999555555&quot; };
+        try
+            {
+            for ( String test : tests )
+                {
+                out.println( ISBNValidate.appendCheckDigitToISBN9( test ) );
+                }
+            for ( String test : tests )
+                {
+                out.println( ISBNValidate.appendCheckDigitToISBN12( &quot;978&quot;
+                                                                    + test ) );
+                }
+            out.println( &quot;isbn13To10&quot; );
+            out.println( isbn13To10( &quot;9780618680009&quot; ) );
+            out.println( &quot;isbn10To13&quot; );
+            out.println( isbn10To13( &quot;0618680004&quot; ) );
+            out.println( &quot;tidyISBN10or13InsertingDashes&quot; );
+            out.println( tidyISBN10or13InsertingDashes( &quot;9780618680009&quot; ) );
+            out.println( tidyISBN10or13InsertingDashes( &quot;0618680004&quot; ) );
+            out.println( &quot;tidyISBN10or13RemovingDashes&quot; );
+            out.println( tidyISBN10or13RemovingDashes( &quot;9780618680009&quot; ) );
+            out.println( tidyISBN10or13RemovingDashes( &quot;0618680004&quot; ) );
+            out.println( &quot;calcISBN13CheckDigit&quot; );
+            out.println( calcISBN13CheckDigit( &quot;978061868000&quot; ) );
+            out.println( &quot;calcISBN10CheckDigit&quot; );
+            out.println( calcISBN10CheckDigit( &quot;061868000&quot; ) );
+            out.println( &quot;isISBN13CheckDigitValid&quot; );
+            out.println( isISBN13CheckDigitValid( &quot;9780618680009&quot; ) );
+            out.println( &quot;isISBN10CheckDigitValid&quot; );
+            out.println( isISBN10CheckDigitValid( &quot;0618680004&quot; ) );
+            }
+        catch ( Exception e )
+            {
+            err.println();
+            e.printStackTrace( err );
+            }
+        }// end if debugging
+<span class="nc" id="L1030">    }</span>
+    }
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

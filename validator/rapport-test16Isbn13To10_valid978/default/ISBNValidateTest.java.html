@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ISBNValidateTest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">ISBNValidateTest.java</span></div><h1>ISBNValidateTest.java</h1><pre class="source lang-java linenums">/**
+ * SEG3503 Z – Été 2026
+* Lili Rose Théoret
+* 300342096
+* Dimanche 7 juin, 2026
+* Devoir 1
+ */
+
+// javac -d . -cp &quot;lib/*&quot; ISBNValidate.java ISBNValidateTest.java
+// java -javaagent:lib/jacocoagent.jar=destfile=jacoco.exec \
+// -jar lib/junit-platform-console-standalone-1.10.0.jar \
+// --class-path . \
+// --select-class ISBNValidateTest
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+<span class="fc" id="L18">public class ISBNValidateTest {</span>
+
+    // // Cas de test 1
+    // @Test
+    // void test1appendCheckDigitToISBN12True() {        
+    //     String result = ISBNValidate.appendCheckDigitToISBN12(&quot;978030640615&quot;);
+        
+    //     assertEquals(&quot;9780306406157&quot;, result);
+    // }
+
+    // // Cas de test 2
+    // @Test
+    // void test2appendCheckDigitToISBN12False() {                
+    //     assertThrows(IllegalArgumentException.class, () -&gt; {
+    //         ISBNValidate.appendCheckDigitToISBN12(&quot;9780306406150&quot;);
+    //     });
+    // }
+
+
+    // // Cadre de test 3
+    // @Test
+    // void test3tidyISBN10or13InsertingDashesTrue() {
+    //     String result = ISBNValidate.tidyISBN10or13InsertingDashes(&quot;9780306406157&quot;);
+
+    //     assertEquals(&quot;978-0-306-40615-7&quot;, result);
+    // }
+
+    // // Cadre de test 4
+    // @Test
+    // void test4tidyISBN10or13InsertingDashesFalse() {
+    //     assertThrows(IllegalArgumentException.class,
+    //         () -&gt; ISBNValidate.tidyISBN10or13InsertingDashes(&quot;&quot;)
+    //     );
+    // }
+
+    // // Cadre de test 5
+    // @Test
+    // void test5ShouldAcceptNonNumericalChar() {
+    //     String result = ISBNValidate.tidyISBN10or13InsertingDashes(&quot;abc9780abc306406157abc&quot;);
+        
+    //     assertEquals(&quot;978-0-306-40615-7&quot;, result);
+    // }
+
+    // // Cadre de test 6
+    // @Test
+    // void test6ShouldAcceptWrongNumberOfDahses() {
+    //     String result = ISBNValidate.tidyISBN10or13InsertingDashes(&quot;978--0306406157&quot;);
+        
+    //     assertEquals(&quot;978-0-306-40615-7&quot;, result);
+    // }
+
+    // // Cadre de test 7
+    // @Test
+    // void test7ShouldAcceptWrongPositionOfDashes() {
+    //     String result = ISBNValidate.tidyISBN10or13InsertingDashes(&quot;9780-306-406157&quot;);
+    
+    //     assertEquals(&quot;978-0-306-40615-7&quot;, result);
+    // }
+
+    // // Cadre de test 8
+    // @Test
+    // void test8ShouldRejectInvalidChecksum() {
+    //     assertThrows(IllegalArgumentException.class,
+    //         () -&gt; ISBNValidate.tidyISBN10or13InsertingDashes(&quot;9780306406150&quot;)
+    //     );
+    // }
+
+    // // Cadre de test 9
+    // @Test
+    // void test9ShouldRejectInvalidPusblisherNumber() {
+    //     assertThrows(IllegalArgumentException.class,
+    //         () -&gt; ISBNValidate.tidyISBN10or13InsertingDashes(&quot;2220306406157&quot;)
+    //     );
+    // }
+
+    // // Cadre de test 10
+    // @Test
+    // void test10ShouldRejectInvalidFinalLength() {
+    //     assertThrows(IllegalArgumentException.class,
+    //         () -&gt; ISBNValidate.tidyISBN10or13InsertingDashes(&quot;97803064061&quot;)
+    //     );
+    // }
+
+    // Cadre de test 1
+    @Test
+    void test1tidyISBN10or13InsertingDashesTrue10() {
+<span class="nc" id="L104">        String result = ISBNValidate.tidyISBN10or13InsertingDashes(&quot;0306406152&quot;);</span>
+
+<span class="nc" id="L106">        assertEquals(&quot;0-306-40615-2&quot;, result);</span>
+<span class="nc" id="L107">    }</span>
+
+    // Cadre de test 2
+    @Test
+    void test2tidyISBN10or13InsertingDashesTrue13() {
+<span class="nc" id="L112">        String result = ISBNValidate.tidyISBN10or13InsertingDashes(&quot;9780306406157&quot;);</span>
+
+<span class="nc" id="L114">        assertEquals(&quot;978-0-306-40615-7&quot;, result);</span>
+<span class="nc" id="L115">    }</span>
+    @Test
+    void test3TidyInsert_null() { //null input
+<span class="nc" id="L118">        assertThrows(IllegalArgumentException.class, () -&gt;</span>
+<span class="nc" id="L119">            ISBNValidate.tidyISBN10or13InsertingDashes(null)</span>
+        );
+<span class="nc" id="L121">    }</span>
+    @Test
+    void test4TidyInsert_empty() { //empty string
+<span class="nc" id="L124">        assertThrows(IllegalArgumentException.class, () -&gt;</span>
+<span class="nc" id="L125">            ISBNValidate.tidyISBN10or13InsertingDashes(&quot;&quot;)</span>
+        );
+<span class="nc" id="L127">    }</span>
+    @Test
+    void test5TidyInsert_tooLong() { //trop long
+<span class="nc" id="L130">        assertThrows(IllegalArgumentException.class, () -&gt;</span>
+<span class="nc" id="L131">            ISBNValidate.tidyISBN10or13InsertingDashes(&quot;123456789012345&quot;)</span>
+        );
+<span class="nc" id="L133">    }</span>
+    @Test
+    void test6TidyInsert_isbn10() { //insert valid IABN-10
+<span class="nc" id="L136">        String result = ISBNValidate.tidyISBN10or13InsertingDashes(&quot;0306406152&quot;);</span>
+<span class="nc" id="L137">        assertEquals(&quot;0-306-40615-2&quot;, result);</span>
+<span class="nc" id="L138">    }</span>
+    // @Test
+    // void test7TidyInsert_isbn13() { //insert valid ISBN-13
+    //     String result = ISBNValidate.tidyISBN10or13InsertingDashes(&quot;9780306406157&quot;);
+    //     assertEquals(&quot;978-0-306-40615-7&quot;, result);
+    // }
+    @Test
+    void test8TidyRemove_null() { //null
+<span class="nc" id="L146">        assertThrows(IllegalArgumentException.class, () -&gt;</span>
+<span class="nc" id="L147">            ISBNValidate.tidyISBN10or13RemovingDashes(null)</span>
+        );
+<span class="nc" id="L149">    }</span>
+    @Test 
+    void test9TidyRemove_empty() {  //empty
+<span class="nc" id="L152">        assertThrows(IllegalArgumentException.class, () -&gt;</span>
+<span class="nc" id="L153">            ISBNValidate.tidyISBN10or13RemovingDashes(&quot;&quot;)</span>
+        );
+<span class="nc" id="L155">    }</span>
+    @Test
+    void test10TidyRemove_tooLong() { //trop long
+<span class="nc" id="L158">        assertThrows(IllegalArgumentException.class, () -&gt;</span>
+<span class="nc" id="L159">            ISBNValidate.tidyISBN10or13RemovingDashes(&quot;123456789012345&quot;)</span>
+        );
+<span class="nc" id="L161">    }</span>
+    @Test
+    void test11TidyRemove_isbn10() { //insert valid ISBN-10
+<span class="nc" id="L164">        String result = ISBNValidate.tidyISBN10or13RemovingDashes(&quot;0-306-40615-2&quot;);</span>
+<span class="nc" id="L165">        assertEquals(&quot;0306406152&quot;, result);</span>
+<span class="nc" id="L166">    }</span>
+    @Test
+    void test12TidyRemove_isbn13() {  //insert valid ISBN-13
+<span class="nc" id="L169">        String result = ISBNValidate.tidyISBN10or13RemovingDashes(&quot;978-0-306-40615-7&quot;);</span>
+<span class="nc" id="L170">        assertEquals(&quot;9780306406157&quot;, result);</span>
+<span class="nc" id="L171">    }</span>
+    @Test
+    void test13Isbn10To13_invalidLength() { // lenght is not equal to 10
+<span class="nc" id="L174">        assertThrows(IllegalArgumentException.class, () -&gt;</span>
+<span class="nc" id="L175">            ISBNValidate.isbn10To13(&quot;123&quot;)</span>
+        );
+<span class="nc" id="L177">    }</span>
+    @Test
+    void test14Isbn10To13_valid() { //valid lenght of 10 characters
+<span class="nc" id="L180">        String result = ISBNValidate.isbn10To13(&quot;0618680004&quot;);</span>
+<span class="nc" id="L181">        assertEquals(&quot;978-0-618-68000-9&quot;, result);</span>
+<span class="nc" id="L182">    }</span>
+    @Test
+    void test15Isbn13To10_invalidLength() { //lenght is not 13
+<span class="nc" id="L185">        assertThrows(IllegalArgumentException.class, () -&gt;</span>
+<span class="nc" id="L186">            ISBNValidate.isbn13To10(&quot;123&quot;)</span>
+        );
+<span class="nc" id="L188">    }</span>
+    @Test
+    void test16Isbn13To10_valid978() { //lenght of 13 and starts with 978
+<span class="fc" id="L191">        String result = ISBNValidate.isbn13To10(&quot;9780618680009&quot;);</span>
+<span class="fc" id="L192">        assertEquals(&quot;0618680004&quot;, result);</span>
+<span class="fc" id="L193">    }</span>
+    @Test
+    void test17Isbn13To10_not978() {  //lenght of 13 but doesnt start with 978
+<span class="nc" id="L196">        String result = ISBNValidate.isbn13To10(&quot;9790618680009&quot;);</span>
+<span class="nc" id="L197">        assertEquals(&quot;n/a&quot;, result);</span>
+<span class="nc" id="L198">    }</span>
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -302,12 +302,12 @@ import static java.lang.System.out;
     @SuppressWarnings( { &quot;WeakerAccess&quot; } )
     public static String appendCheckDigitToISBN9( String dashlessISBN9 )
     {
-<span class="nc bnc" id="L305" title="All 2 branches missed.">    if ( dashlessISBN9.length() != 9 )</span>
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">    if ( dashlessISBN9.length() != 9 )</span>
         {
 <span class="nc" id="L307">        throw new IllegalArgumentException(</span>
                 &quot;ISBN-9 must be 9 chars long without dashes, without check digit&quot; );
         }
-<span class="nc" id="L310">    return dashlessISBN9 + calcISBN10CheckDigit( dashlessISBN9 );</span>
+<span class="fc" id="L310">    return dashlessISBN9 + calcISBN10CheckDigit( dashlessISBN9 );</span>
     }// end appendCheckDigitToISBN9
 
     /**
@@ -416,12 +416,12 @@ import static java.lang.System.out;
      */
     public static String isbn10To13( String dashlessISBN10 )
     {
-<span class="nc bnc" id="L419" title="All 2 branches missed.">    if ( dashlessISBN10.length() != 10 )</span>
+<span class="fc bfc" id="L419" title="All 2 branches covered.">    if ( dashlessISBN10.length() != 10 )</span>
         {
-<span class="nc" id="L421">        throw new IllegalArgumentException(</span>
+<span class="fc" id="L421">        throw new IllegalArgumentException(</span>
                 &quot;ISBN-10 must be 10 chars long without dashes, with check digit&quot; );
         }
-<span class="nc" id="L424">    return appendCheckDigitToISBN12( &quot;978&quot; + dashlessISBN10.substring( 0,</span>
+<span class="fc" id="L424">    return appendCheckDigitToISBN12( &quot;978&quot; + dashlessISBN10.substring( 0,</span>
             9 ) );
     }
 
@@ -434,18 +434,18 @@ import static java.lang.System.out;
      */
     public static String isbn13To10( String dashlessISBN13 )
     {
-<span class="nc bnc" id="L437" title="All 2 branches missed.">    if ( dashlessISBN13.length() != 13 )</span>
+<span class="fc bfc" id="L437" title="All 2 branches covered.">    if ( dashlessISBN13.length() != 13 )</span>
         {
-<span class="nc" id="L439">        throw new IllegalArgumentException(</span>
+<span class="fc" id="L439">        throw new IllegalArgumentException(</span>
                 &quot;ISBN-13 must be 13 chars long without dashes, with check digit.&quot; );
         }
-<span class="nc bnc" id="L442" title="All 2 branches missed.">    if ( dashlessISBN13.substring( 0, 3 ).equals( &quot;978&quot; ) )</span>
+<span class="fc bfc" id="L442" title="All 2 branches covered.">    if ( dashlessISBN13.substring( 0, 3 ).equals( &quot;978&quot; ) )</span>
         {
-<span class="nc" id="L444">        return appendCheckDigitToISBN9( dashlessISBN13.substring( 3, 12 ) );</span>
+<span class="fc" id="L444">        return appendCheckDigitToISBN9( dashlessISBN13.substring( 3, 12 ) );</span>
         }
     else
         {
-<span class="nc" id="L448">        return ( &quot;n/a&quot; );</span>
+<span class="fc" id="L448">        return ( &quot;n/a&quot; );</span>
         }
     }
 
@@ -461,14 +461,14 @@ import static java.lang.System.out;
     public static String tidyISBN10or13InsertingDashes
     ( String rawISBN10or13 )
     {
-<span class="pc bpc" id="L464" title="2 of 4 branches missed.">    if ( rawISBN10or13 == null || rawISBN10or13.length() == 0 )</span>
+<span class="fc bfc" id="L464" title="All 4 branches covered.">    if ( rawISBN10or13 == null || rawISBN10or13.length() == 0 )</span>
         {
-<span class="nc" id="L466">        throw new IllegalArgumentException( &quot;no ISBN&quot; );</span>
+<span class="fc" id="L466">        throw new IllegalArgumentException( &quot;no ISBN&quot; );</span>
         }
     // strip lead, trail and embedded junk including dashes
 <span class="fc" id="L469">    final String dashlessISBN = strip( rawISBN10or13 );</span>
 <span class="fc" id="L470">    final int length = dashlessISBN.length();</span>
-<span class="pc bpc" id="L471" title="1 of 3 branches missed.">    switch ( length )</span>
+<span class="fc bfc" id="L471" title="All 3 branches covered.">    switch ( length )</span>
         {
         case 10:
 <span class="fc" id="L474">            ensureISBN10Valid( dashlessISBN );</span>
@@ -477,7 +477,7 @@ import static java.lang.System.out;
 <span class="fc" id="L477">            ensureISBN13Valid( dashlessISBN );</span>
 <span class="fc" id="L478">            return insertDashesInISBN10or13( dashlessISBN );</span>
         default:
-<span class="nc" id="L480">            throw new IllegalArgumentException(</span>
+<span class="fc" id="L480">            throw new IllegalArgumentException(</span>
                     &quot;ISBN must be 10 or 13 digits long.&quot; );
         }
     }// end tidyISBN10or13InsertingDashes
@@ -493,23 +493,23 @@ import static java.lang.System.out;
      */
     public static String tidyISBN10or13RemovingDashes( String rawISBN10or13 )
     {
-<span class="nc bnc" id="L496" title="All 4 branches missed.">    if ( rawISBN10or13 == null || rawISBN10or13.length() == 0 )</span>
+<span class="fc bfc" id="L496" title="All 4 branches covered.">    if ( rawISBN10or13 == null || rawISBN10or13.length() == 0 )</span>
         {
-<span class="nc" id="L498">        throw new IllegalArgumentException( &quot;no ISBN&quot; );</span>
+<span class="fc" id="L498">        throw new IllegalArgumentException( &quot;no ISBN&quot; );</span>
         }
     // strip lead, trail and embedded junk including dashes
-<span class="nc" id="L501">    final String dashlessISBN = strip( rawISBN10or13 );</span>
-<span class="nc" id="L502">    final int length = dashlessISBN.length();</span>
-<span class="nc bnc" id="L503" title="All 3 branches missed.">    switch ( length )</span>
+<span class="fc" id="L501">    final String dashlessISBN = strip( rawISBN10or13 );</span>
+<span class="fc" id="L502">    final int length = dashlessISBN.length();</span>
+<span class="fc bfc" id="L503" title="All 3 branches covered.">    switch ( length )</span>
         {
         case 10:
-<span class="nc" id="L506">            ensureISBN10Valid( dashlessISBN );</span>
-<span class="nc" id="L507">            return dashlessISBN;</span>
+<span class="fc" id="L506">            ensureISBN10Valid( dashlessISBN );</span>
+<span class="fc" id="L507">            return dashlessISBN;</span>
         case 13:
-<span class="nc" id="L509">            ensureISBN13Valid( dashlessISBN );</span>
-<span class="nc" id="L510">            return dashlessISBN;</span>
+<span class="fc" id="L509">            ensureISBN13Valid( dashlessISBN );</span>
+<span class="fc" id="L510">            return dashlessISBN;</span>
         default:
-<span class="nc" id="L512">            throw new IllegalArgumentException(</span>
+<span class="fc" id="L512">            throw new IllegalArgumentException(</span>
                     &quot;must be 10 or 13 digits long.&quot; );
         }
     }// end tidyISBN10or13RemovingDashes
@@ -906,11 +906,11 @@ import static java.lang.System.out;
 <span class="fc bfc" id="L906" title="All 2 branches covered.">    for ( int i = 0; i &lt; rawISBN10or13.length(); i++ )</span>
         {
 <span class="fc" id="L908">        char c = rawISBN10or13.charAt( i );</span>
-<span class="pc bpc" id="L909" title="1 of 2 branches missed.">        if ( &quot;0123456789&quot;.indexOf( c ) &gt;= 0 )</span>
+<span class="fc bfc" id="L909" title="All 2 branches covered.">        if ( &quot;0123456789&quot;.indexOf( c ) &gt;= 0 )</span>
             {
 <span class="fc" id="L911">            cooked.append( c );</span>
             }
-<span class="nc bnc" id="L913" title="All 2 branches missed.">        else if ( &quot;Xx&quot;.indexOf( c ) &gt;= 0 )</span>
+<span class="pc bpc" id="L913" title="1 of 2 branches missed.">        else if ( &quot;Xx&quot;.indexOf( c ) &gt;= 0 )</span>
             {
 <span class="nc" id="L915">            cooked.append( 'X' );</span>
             }
